@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mim Stars - Tap to Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="game-header">
+            <div class="user-info">
+                <img src="assets/icons/logo.png" alt="Mim Stars" class="logo">
+                <div>
+                    <h2 id="username">Loading...</h2>
+                    <div class="energy-bar">
+                        <span>⚡</span>
+                        <div class="bar-container">
+                            <div class="bar-fill" id="energy-bar"></div>
+                        </div>
+                        <span id="energy-text">100/100</span>
+                    </div>
+                </div>
+            </div>
+            <div class="coins-display">
+                <i class="fas fa-coins"></i>
+                <span id="coins">0</span>
+            </div>
+        </header>
+
+        <!-- Main Tap Area -->
+        <main class="tap-area">
+            <div class="tap-card" id="tap-button">
+                <div class="tap-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <h3>TAP ME!</h3>
+                <p id="per-tap-value">+1 per tap</p>
+                <div class="tap-counter" id="tap-counter">0</div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <span>Total Earned</span>
+                    <strong id="total-earned">0</strong>
+                </div>
+                <div class="stat-box">
+                    <span>Total Taps</span>
+                    <strong id="total-taps">0</strong>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-tab="tasks">
+                <i class="fas fa-tasks"></i>
+                <span>Tasks</span>
+            </button>
+            <button class="nav-btn" data-tab="upgrades">
+                <i class="fas fa-arrow-up"></i>
+                <span>Upgrades</span>
+            </button>
+            <button class="nav-btn" data-tab="referral">
+                <i class="fas fa-user-plus"></i>
+                <span>Referral</span>
+            </button>
+            <button class="nav-btn" data-tab="leaderboard">
+                <i class="fas fa-trophy"></i>
+                <span>Top</span>
+            </button>
+            <button class="nav-btn" data-tab="airdrop">
+                <i class="fas fa-gift"></i>
+                <span>Airdrop</span>
+            </button>
+        </nav>
+
+        <!-- Content Sections -->
+        <div class="content-sections">
+            <!-- Tasks Section -->
+            <section class="content-section active" id="tasks-section">
+                <h3><i class="fas fa-tasks"></i> Daily Tasks</h3>
+                <div class="tasks-list" id="tasks-list">
+                    <!-- Tasks loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Upgrades Section -->
+            <section class="content-section" id="upgrades-section">
+                <h3><i class="fas fa-arrow-up"></i> Upgrades</h3>
+                <div class="upgrades-list">
+                    <div class="upgrade-item">
+                        <div class="upgrade-info">
+                            <i class="fas fa-hand-pointer"></i>
+                            <div>
+                                <h4>Tap Power</h4>
+                                <p>Increase coins per tap</p>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" data-upgrade="tapPower">
+                            <span>Level <span id="tap-level">1</span></span>
+                            <span>Cost: <span id="tap-cost">100</span> coins</span>
+                        </button>
+                    </div>
+                    <div class="upgrade-item">
+                        <div class="upgrade-info">
+                            <i class="fas fa-battery-full"></i>
+                            <div>
+                                <h4>Energy Capacity</h4>
+                                <p>Increase max energy</p>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" data-upgrade="energyCapacity">
+                            <span>Level <span id="energy-level">1</span></span>
+                            <span>Cost: <span id="energy-cost">150</span> coins</span>
+                        </button>
+                    </div>
+                    <div class="upgrade-item">
+                        <div class="upgrade-info">
+                            <i class="fas fa-bolt"></i>
+                            <div>
+                                <h4>Energy Recharge</h4>
+                                <p>Faster energy recovery</p>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" data-upgrade="energyRecharge">
+                            <span>Level <span id="recharge-level">1</span></span>
+                            <span>Cost: <span id="recharge-cost">200</span> coins</span>
+                        </button>
+                    </div>
+                    <div class="upgrade-item">
+                        <div class="upgrade-info">
+                            <i class="fas fa-robot"></i>
+                            <div>
+                                <h4>Auto Tap</h4>
+                                <p>Automatically tap for you</p>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" data-upgrade="autoTap">
+                            <span id="autotap-status">Buy: 500 coins</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Referral Section -->
+            <section class="content-section" id="referral-section">
+                <h3><i class="fas fa-user-plus"></i> Refer & Earn</h3>
+                <div class="referral-card">
+                    <div class="referral-code-box">
+                        <p>Your Referral Code:</p>
+                        <h2 id="referral-code">LOADING</h2>
+                        <button class="copy-btn" id="copy-referral">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <div class="referral-stats">
+                        <div class="stat">
+                            <span>Friends Invited</span>
+                            <strong id="referral-count">0</strong>
+                        </div>
+                        <div class="stat">
+                            <span>Earned from Ref</span>
+                            <strong id="referral-earned">0</strong>
+                        </div>
+                    </div>
+                    <div class="referral-instructions">
+                        <p><i class="fas fa-share-alt"></i> Share your link:</p>
+                        <div class="referral-link">
+                            <input type="text" id="referral-link" readonly value="Loading...">
+                            <button class="share-btn" id="share-referral">
+                                <i class="fas fa-share"></i>
+                            </button>
+                        </div>
+                        <p class="note">Earn 100 coins for each friend who joins!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboard Section -->
+            <section class="content-section" id="leaderboard-section">
+                <h3><i class="fas fa-trophy"></i> Leaderboard</h3>
+                <div class="leaderboard-tabs">
+                    <button class="leaderboard-tab active" data-board="daily">Daily</button>
+                    <button class="leaderboard-tab" data-board="weekly">Weekly</button>
+                    <button class="leaderboard-tab" data-board="alltime">All Time</button>
+                </div>
+                <div class="leaderboard-list" id="leaderboard-list">
+                    <!-- Leaderboard loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Airdrop Section -->
+            <section class="content-section" id="airdrop-section">
+                <h3><i class="fas fa-gift"></i> Airdrop Rewards</h3>
+                <div class="airdrop-list" id="airdrop-list">
+                    <!-- Airdrops loaded dynamically -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="reward-modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-gift"></i> Reward Claimed!</h3>
+            <p>You earned <span id="reward-amount">100</span> coins!</p>
+            <button class="modal-close">Awesome!</button>
+        </div>
+    </div>
+
+    <div class="modal" id="energy-modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-battery-empty"></i> Low Energy!</h3>
+            <p>Wait for energy to recharge or watch an ad to refill instantly.</p>
+            <div class="modal-actions">
+                <button class="secondary-btn" id="watch-ad">Watch Ad (+50 energy)</button>
+                <button class="modal-close">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        // Game Logic
+        let currentUser = null;
+        let gameConfig = null;
+        let userData = null;
+        let autoTapInterval = null;
+        let userTelegramId = null;
+
+        // Initialize game
+        async function initGame() {
+            // Authenticate user
+            userTelegramId = await authenticateTelegramUser();
+            if (!userTelegramId) {
+                alert("Authentication failed. Please restart the app.");
+                return;
+            }
+
+            // Setup realtime listeners
+            setupRealtimeUser(userTelegramId, handleUserUpdate);
+            setupRealtimeGameConfig(handleConfigUpdate);
+            
+            // Load tasks, leaderboard, airdrops
+            loadTasks();
+            loadLeaderboard('daily');
+            loadAirdrops();
+            
+            // Setup UI events
+            setupEventListeners();
+            
+            // Start auto tap if enabled
+            checkAutoTap();
+        }
+
+        function handleUserUpdate(data) {
+            userData = data;
+            updateUI(data);
+            
+            // Check if user is banned
+            if (data.banned) {
+                alert("Your account has been suspended. Contact support.");
+                tg.close();
+            }
+        }
+
+        function handleConfigUpdate(config) {
+            gameConfig = config;
+            
+            // Check if game is disabled
+            if (config && config.gameEnabled === false) {
+                document.getElementById('tap-button').style.opacity = '0.5';
+                document.getElementById('tap-button').style.pointerEvents = 'none';
+                alert("Game is currently under maintenance. Please check back later.");
+            }
+        }
+
+        function updateUI(data) {
+            // Update basic info
+            document.getElementById('username').textContent = data.firstName;
+            document.getElementById('coins').textContent = formatNumber(data.coins);
+            
+            // Update energy
+            const energyPercent = (data.energy / data.maxEnergy) * 100;
+            document.getElementById('energy-bar').style.width = energyPercent + '%';
+            document.getElementById('energy-text').textContent = 
+                Math.floor(data.energy) + '/' + data.maxEnergy;
+            
+            // Update per tap value
+            document.getElementById('per-tap-value').textContent = 
+                '+' + (data.perTapValue || 1) + ' per tap';
+            
+            // Update stats
+            document.getElementById('total-earned').textContent = formatNumber(data.totalEarned || 0);
+            document.getElementById('total-taps').textContent = formatNumber(data.totalTaps || 0);
+            
+            // Update upgrades
+            document.getElementById('tap-level').textContent = data.upgrades?.tapPower || 1;
+            document.getElementById('energy-level').textContent = data.upgrades?.energyCapacity || 1;
+            document.getElementById('recharge-level').textContent = data.upgrades?.energyRecharge || 1;
+            
+            // Update referral
+            document.getElementById('referral-code').textContent = data.referralCode || 'N/A';
+            document.getElementById('referral-count').textContent = data.referrals?.length || 0;
+            document.getElementById('referral-earned').textContent = formatNumber((data.referrals?.length || 0) * 100);
+            
+            // Update referral link
+            const refLink = `https://t.me/MimStarsBot?start=${data.referralCode}`;
+            document.getElementById('referral-link').value = refLink;
+            
+            // Update tap counter
+            document.getElementById('tap-counter').textContent = formatNumber(data.totalTaps || 0);
+        }
+
+        // Tap function
+        async function handleTap() {
+            if (!userData || !userTelegramId) return;
+            
+            // Check energy
+            if (userData.energy < 1) {
+                document.getElementById('energy-modal').classList.add('active');
+                return;
+            }
+            
+            // Calculate tap value
+            const tapValue = userData.perTapValue || 1;
+            
+            // Update in Firebase
+            try {
+                await db.collection('users').doc(userTelegramId).update({
+                    coins: firebase.firestore.FieldValue.increment(tapValue),
+                    energy: firebase.firestore.FieldValue.increment(-1),
+                    totalTaps: firebase.firestore.FieldValue.increment(1),
+                    totalEarned: firebase.firestore.FieldValue.increment(tapValue),
+                    lastTapTime: Date.now()
+                });
+                
+                // Visual feedback
+                vibrate();
+                showTapEffect(tapValue);
+                
+            } catch (error) {
+                console.error("Tap error:", error);
+            }
+        }
+
+        function showTapEffect(amount) {
+            const tapBtn = document.getElementById('tap-button');
+            const effect = document.createElement('div');
+            effect.className = 'tap-effect';
+            effect.textContent = '+' + amount;
+            tapBtn.appendChild(effect);
+            
+            setTimeout(() => {
+                effect.remove();
+            }, 1000);
+        }
+
+        // Auto Tap System
+        function checkAutoTap() {
+            if (userData?.autoTapEnabled && gameConfig?.autoTapAllowed !== false) {
+                startAutoTap();
+            } else {
+                stopAutoTap();
+            }
+        }
+
+        function startAutoTap() {
+            if (autoTapInterval) clearInterval(autoTapInterval);
+            
+            autoTapInterval = setInterval(async () => {
+                if (userData?.energy > 0) {
+                    await handleTap();
+                }
+            }, 1000); // 1 tap per second
+        }
+
+        function stopAutoTap() {
+            if (autoTapInterval) {
+                clearInterval(autoTapInterval);
+                autoTapInterval = null;
+            }
+        }
+
+        // Load Tasks
+        async function loadTasks() {
+            try {
+                const tasksSnapshot = await db.collection('tasks').where('active', '==', true).get();
+                const tasksList = document.getElementById('tasks-list');
+                tasksList.innerHTML = '';
+                
+                tasksSnapshot.forEach(doc => {
+                    const task = doc.data();
+                    const isCompleted = userData?.tasksCompleted?.includes(doc.id) || false;
+                    
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `task-item ${isCompleted ? 'completed' : ''}`;
+                    taskElement.innerHTML = `
+                        <div class="task-info">
+                            <i class="fas ${task.icon || 'fa-star'}"></i>
+                            <div>
+                                <h4>${task.title}</h4>
+                                <p>${task.description}</p>
+                            </div>
+                        </div>
+                        <button class="task-reward" data-task="${doc.id}" ${isCompleted ? 'disabled' : ''}>
+                            ${isCompleted ? '<i class="fas fa-check"></i>' : task.reward + ' coins'}
+                        </button>
+                    `;
+                    
+                    tasksList.appendChild(taskElement);
+                });
+            } catch (error) {
+                console.error("Error loading tasks:", error);
+            }
+        }
+
+        // Load Leaderboard
+        async function loadLeaderboard(type) {
+            try {
+                let query = db.collection('users')
+                    .where('banned', '==', false)
+                    .orderBy('coins', 'desc')
+                    .limit(20);
+                
+                const snapshot = await query.get();
+                const leaderboardList = document.getElementById('leaderboard-list');
+                leaderboardList.innerHTML = '';
+                
+                let rank = 1;
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const isCurrentUser = doc.id === userTelegramId;
+                    
+                    const leaderItem = document.createElement('div');
+                    leaderItem.className = `leader-item ${isCurrentUser ? 'current-user' : ''}`;
+                    leaderItem.innerHTML = `
+                        <div class="leader-rank">${rank}</div>
+                        <div class="leader-info">
+                            <strong>${user.firstName}</strong>
+                            <span>@${user.username}</span>
+                        </div>
+                        <div class="leader-coins">
+                            <i class="fas fa-coins"></i>
+                            ${formatNumber(user.coins)}
+                        </div>
+                    `;
+                    
+                    leaderboardList.appendChild(leaderItem);
+                    rank++;
+                });
+            } catch (error) {
+                console.error("Error loading leaderboard:", error);
+            }
+        }
+
+        // Load Airdrops
+        async function loadAirdrops() {
+            try {
+                const airdropsSnapshot = await db.collection('airdrops')
+                    .where('active', '==', true)
+                    .orderBy('expiry', 'desc')
+                    .get();
+                
+                const airdropList = document.getElementById('airdrop-list');
+                airdropList.innerHTML = '';
+                
+                airdropsSnapshot.forEach(doc => {
+                    const airdrop = doc.data();
+                    const isClaimed = userData?.airdropsClaimed?.includes(doc.id) || false;
+                    
+                    const airdropElement = document.createElement('div');
+                    airdropElement.className = `airdrop-item ${isClaimed ? 'claimed' : ''}`;
+                    airdropElement.innerHTML = `
+                        <div class="airdrop-info">
+                            <i class="fas ${airdrop.icon || 'fa-gift'}"></i>
+                            <div>
+                                <h4>${airdrop.title}</h4>
+                                <p>${airdrop.description}</p>
+                                <small>Expires: ${new Date(airdrop.expiry).toLocaleDateString()}</small>
+                            </div>
+                        </div>
+                        <button class="airdrop-claim" data-airdrop="${doc.id}" ${isClaimed ? 'disabled' : ''}>
+                            ${isClaimed ? 'Claimed' : airdrop.reward + ' coins'}
+                        </button>
+                    `;
+                    
+                    airdropList.appendChild(airdropElement);
+                });
+            } catch (error) {
+                console.error("Error loading airdrops:", error);
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Tap button
+            document.getElementById('tap-button').addEventListener('click', handleTap);
+            
+            // Navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.getAttribute('data-tab');
+                    
+                    // Update active nav button
+                    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Show selected section
+                    document.querySelectorAll('.content-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    document.getElementById(`${tab}-section`).classList.add('active');
+                });
+            });
+            
+            // Leaderboard tabs
+            document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const boardType = tab.getAttribute('data-board');
+                    
+                    document.querySelectorAll('.leaderboard-tab').forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    tab.classList.add('active');
+                    
+                    loadLeaderboard(boardType);
+                });
+            });
+            
+            // Copy referral
+            document.getElementById('copy-referral').addEventListener('click', () => {
+                const code = document.getElementById('referral-code').textContent;
+                navigator.clipboard.writeText(code);
+                alert('Referral code copied!');
+            });
+            
+            // Share referral
+            document.getElementById('share-referral').addEventListener('click', () => {
+                const link = document.getElementById('referral-link').value;
+                if (tg.share) {
+                    tg.share(link);
+                } else {
+                    navigator.clipboard.writeText(link);
+                    alert('Link copied! Share it with friends.');
+                }
+            });
+            
+            // Upgrade buttons
+            document.querySelectorAll('.upgrade-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const upgradeType = btn.getAttribute('data-upgrade');
+                    await handleUpgrade(upgradeType);
+                });
+            });
+            
+            // Close modals
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.modal').classList.remove('active');
+                });
+            });
+            
+            // Watch ad for energy
+            document.getElementById('watch-ad').addEventListener('click', async () => {
+                // In real app, integrate with ad network
+                await db.collection('users').doc(userTelegramId).update({
+                    energy: firebase.firestore.FieldValue.increment(50)
+                });
+                document.getElementById('energy-modal').classList.remove('active');
+            });
+        }
+
+        async function handleUpgrade(type) {
+            if (!userData || !userTelegramId) return;
+            
+            let cost = 0;
+            let currentLevel = 1;
+            
+            switch(type) {
+                case 'tapPower':
+                    currentLevel = userData.upgrades?.tapPower || 1;
+                    cost = currentLevel * 100;
+                    break;
+                case 'energyCapacity':
+                    currentLevel = userData.upgrades?.energyCapacity || 1;
+                    cost = currentLevel * 150;
+                    break;
+                case 'energyRecharge':
+                    currentLevel = userData.upgrades?.energyRecharge || 1;
+                    cost = currentLevel * 200;
+                    break;
+                case 'autoTap':
+                    cost = 500;
+                    break;
+            }
+            
+            if (userData.coins < cost) {
+                alert(`Not enough coins! Need ${cost} coins.`);
+                return;
+            }
+            
+            try {
+                if (type === 'autoTap') {
+                    await db.collection('users').doc(userTelegramId).update({
+                        coins: firebase.firestore.FieldValue.increment(-cost),
+                        autoTapEnabled: true,
+                        autoTapLevel: 1
+                    });
+                    alert('Auto Tap purchased!');
+                } else {
+                    const updateData = {
+                        coins: firebase.firestore.FieldValue.increment(-cost)
+                    };
+                    updateData[`upgrades.${type}`] = firebase.firestore.FieldValue.increment(1);
+                    
+                    await db.collection('users').doc(userTelegramId).update(updateData);
+                    
+                    // Update per tap value if tap power upgraded
+                    if (type === 'tapPower') {
+                        await db.collection('users').doc(userTelegramId).update({
+                            perTapValue: firebase.firestore.FieldValue.increment(0.5)
+                        });
+                    }
+                    
+                    // Update max energy if capacity upgraded
+                    if (type === 'energyCapacity') {
+                        await db.collection('users').doc(userTelegramId).update({
+                            maxEnergy: firebase.firestore.FieldValue.increment(20)
+                        });
+                    }
+                    
+                    alert('Upgrade successful!');
+                }
+            } catch (error) {
+                console.error("Upgrade error:", error);
+                alert('Upgrade failed. Please try again.');
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
